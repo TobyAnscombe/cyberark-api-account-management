@@ -24,6 +24,7 @@
     status_code: [201]
     timeout: 30
     validate_certs: "{{ cyberark_validate_certs }}"
+  no_log: true
   register: _cyberark_account_create
   when: not cyberark_account_exists
   run_once: true
