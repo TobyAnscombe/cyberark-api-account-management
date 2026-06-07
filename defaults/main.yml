@@ -46,3 +46,17 @@ cyberark_account_platform_properties: {}
 # supply a reason in cyberark_account_manual_management_reason.
 cyberark_account_automatic_management_enabled: true
 cyberark_account_manual_management_reason: ""
+
+# ---------------------------------------------------------------------------
+# PSM remote machine access
+# ---------------------------------------------------------------------------
+# Semicolon-separated list of machines this account may connect to via PSM.
+# Leave empty to apply no restriction (field is omitted from the API body).
+# accessRestrictedToRemoteMachines: true enforces the list as an allowlist;
+# false records the preferred machines without blocking others.
+#
+# Example:
+#   cyberark_account_remote_machines: "srv01.corp.example.com;srv02.corp.example.com"
+#   cyberark_account_access_restricted_to_remote_machines: true
+cyberark_account_remote_machines: ""
+cyberark_account_access_restricted_to_remote_machines: false

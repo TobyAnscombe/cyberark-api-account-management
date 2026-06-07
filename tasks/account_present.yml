@@ -9,18 +9,30 @@
     headers:
       Authorization: "Bearer {{ cyberark_token }}"
     body_format: json
-    body:
-      name: "{{ cyberark_account_name }}"
-      address: "{{ cyberark_account_address }}"
-      userName: "{{ cyberark_account_username }}"
-      platformId: "{{ cyberark_account_platform_id }}"
-      safeName: "{{ cyberark_account_safe }}"
-      secretType: "{{ cyberark_account_secret_type }}"
-      secret: "{{ cyberark_account_secret }}"
-      platformAccountProperties: "{{ cyberark_account_platform_properties }}"
-      secretManagement:
-        automaticManagementEnabled: "{{ cyberark_account_automatic_management_enabled }}"
-        manualManagementReason: "{{ cyberark_account_manual_management_reason }}"
+    body: >-
+      {{
+        {
+          'name': cyberark_account_name,
+          'address': cyberark_account_address,
+          'userName': cyberark_account_username,
+          'platformId': cyberark_account_platform_id,
+          'safeName': cyberark_account_safe,
+          'secretType': cyberark_account_secret_type,
+          'secret': cyberark_account_secret,
+          'platformAccountProperties': cyberark_account_platform_properties,
+          'secretManagement': {
+            'automaticManagementEnabled': cyberark_account_automatic_management_enabled,
+            'manualManagementReason': cyberark_account_manual_management_reason
+          }
+        } | combine(
+          {'remoteMachinesAccess': {
+            'remoteMachines': cyberark_account_remote_machines,
+            'accessRestrictedToRemoteMachines': cyberark_account_access_restricted_to_remote_machines
+          }}
+          if cyberark_account_remote_machines | trim | length > 0
+          else {}
+        )
+      }}
     status_code: [201]
     timeout: 30
     validate_certs: "{{ cyberark_validate_certs }}"
@@ -37,25 +49,28 @@
     headers:
       Authorization: "Bearer {{ cyberark_token }}"
     body_format: json
-    body:
-      - op: replace
-        path: /name
-        value: "{{ cyberark_account_name }}"
-      - op: replace
-        path: /address
-        value: "{{ cyberark_account_address }}"
-      - op: replace
-        path: /userName
-        value: "{{ cyberark_account_username }}"
-      - op: replace
-        path: /platformId
-        value: "{{ cyberark_account_platform_id }}"
-      - op: replace
-        path: /secretManagement/automaticManagementEnabled
-        value: "{{ cyberark_account_automatic_management_enabled }}"
-      - op: replace
-        path: /secretManagement/manualManagementReason
-        value: "{{ cyberark_account_manual_management_reason }}"
+    body: >-
+      {{
+        [
+          {'op': 'replace', 'path': '/name',        'value': cyberark_account_name},
+          {'op': 'replace', 'path': '/address',     'value': cyberark_account_address},
+          {'op': 'replace', 'path': '/userName',    'value': cyberark_account_username},
+          {'op': 'replace', 'path': '/platformId',  'value': cyberark_account_platform_id},
+          {'op': 'replace', 'path': '/secretManagement/automaticManagementEnabled',
+                            'value': cyberark_account_automatic_management_enabled},
+          {'op': 'replace', 'path': '/secretManagement/manualManagementReason',
+                            'value': cyberark_account_manual_management_reason}
+        ] + (
+          [
+            {'op': 'replace', 'path': '/remoteMachinesAccess/remoteMachines',
+                              'value': cyberark_account_remote_machines},
+            {'op': 'replace', 'path': '/remoteMachinesAccess/accessRestrictedToRemoteMachines',
+                              'value': cyberark_account_access_restricted_to_remote_machines}
+          ]
+          if cyberark_account_remote_machines | trim | length > 0
+          else []
+        )
+      }}
     status_code: [200]
     timeout: 30
     validate_certs: "{{ cyberark_validate_certs }}"
