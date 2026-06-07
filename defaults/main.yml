@@ -1,0 +1,48 @@
+---
+# Required — set in playbook vars; cyberark_token is produced by the cyberark_auth role
+cyberark_subdomain: ""
+
+cyberark_validate_certs: true
+
+# ---------------------------------------------------------------------------
+# Account identity and state
+# ---------------------------------------------------------------------------
+cyberark_account_name: ""
+cyberark_account_safe: ""
+cyberark_account_platform_id: ""
+cyberark_account_address: ""
+cyberark_account_username: ""
+cyberark_account_state: present   # present | absent
+
+# ---------------------------------------------------------------------------
+# Credential
+# ---------------------------------------------------------------------------
+cyberark_account_secret_type: password   # password | key
+cyberark_account_secret: ""              # vault-encrypted; write-only on the API
+cyberark_account_secret_update: false    # set true to push a new credential on every run
+
+# ---------------------------------------------------------------------------
+# Platform-specific properties
+# ---------------------------------------------------------------------------
+# Extra properties passed verbatim to the API under platformAccountProperties.
+# The keys accepted here vary by platform — consult the platform definition in
+# Privilege Cloud for the available fields.
+#
+# Example for WinDomain:
+#   cyberark_account_platform_properties:
+#     LogonDomain: "corp"
+#
+# Example for Oracle:
+#   cyberark_account_platform_properties:
+#     Port: "1521"
+#     Database: "ORCL"
+cyberark_account_platform_properties: {}
+
+# ---------------------------------------------------------------------------
+# CPM management
+# ---------------------------------------------------------------------------
+# When true, CyberArk's CPM rotates the credential automatically.
+# Set to false when an external process (e.g. Ansible) owns rotation and
+# supply a reason in cyberark_account_manual_management_reason.
+cyberark_account_automatic_management_enabled: true
+cyberark_account_manual_management_reason: ""

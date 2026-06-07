@@ -1,0 +1,9 @@
+*.retry
+*.vault
+.vault_pass
+*.secret
+
+.ansible/
+
+CLAUDE.md
+tasks/*.md

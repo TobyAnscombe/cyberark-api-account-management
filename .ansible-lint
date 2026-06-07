@@ -1,0 +1,14 @@
+profile: basic
+
+# Prevent ansible-lint from auto-running ansible-galaxy install when it finds
+# requirements.yml. mock_roles below stubs external roles for lint purposes.
+offline: true
+
+mock_roles:
+  - cyberark_auth
+  - cyberark_account_management
+
+skip_list:
+  # All CyberArk roles share the cyberark_ prefix intentionally — role-specific
+  # prefixes would break consistency across the suite.
+  - var-naming[no-role-prefix]

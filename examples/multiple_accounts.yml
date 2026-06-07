@@ -1,0 +1,77 @@
+---
+# Example: manage multiple CyberArk accounts in a single play.
+#
+# Calls cyberark_auth once, then iterates over cyberark_accounts with
+# include_role so each account is created or updated idempotently.
+#
+# Run:
+#   ansible-playbook examples/multiple_accounts.yml \
+#     -e cyberark_identity_tenant=YOUR_TENANT_ID \
+#     -e cyberark_subdomain=YOUR_SUBDOMAIN \
+#     --vault-password-file ~/.vault_pass
+#
+# requirements.yml (install before running):
+#   roles:
+#     - name: cyberark_auth
+#       src: https://github.com/TobyAnscombe/cyberark-api-management
+#       version: main
+#     - name: cyberark_account_management
+#       src: https://github.com/TobyAnscombe/cyberark-api-account-management
+#       version: main
+
+- name: Manage CyberArk accounts
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    cyberark_identity_tenant: "YOUR_TENANT_ID"
+    cyberark_subdomain: "YOUR_SUBDOMAIN"
+    # cyberark_client_id: !vault |
+    #   $ANSIBLE_VAULT;1.1;AES256
+    #   ...
+    # cyberark_client_secret: !vault |
+    #   $ANSIBLE_VAULT;1.1;AES256
+    #   ...
+
+    cyberark_accounts:
+      # Windows domain account — CPM manages password rotation
+      - safe: "app-team-safe"
+        platform_id: "WinDomain"
+        address: "corp.example.com"
+        username: "svc_appteam"
+        name: "corp.example.com-svc_appteam"
+        state: present
+
+      # Linux SSH key account — Ansible manages key rotation
+      - safe: "linux-safe"
+        platform_id: "UnixSSHKeys"
+        address: "corp.example.com"
+        username: "john.smith"
+        name: "corp.example.com-john.smith"
+        automatic_management_enabled: false
+        manual_management_reason: "SSH key rotation managed by Ansible"
+        state: present
+
+  roles:
+    - cyberark_auth
+
+  tasks:
+    - name: Manage account
+      include_role:
+        name: cyberark_account_management
+      vars:
+        cyberark_account_safe: "{{ item.safe }}"
+        cyberark_account_platform_id: "{{ item.platform_id }}"
+        cyberark_account_address: "{{ item.address }}"
+        cyberark_account_username: "{{ item.username }}"
+        cyberark_account_name: "{{ item.name }}"
+        cyberark_account_state: "{{ item.state }}"
+        cyberark_account_automatic_management_enabled: "{{ item.automatic_management_enabled | default(true) }}"
+        cyberark_account_manual_management_reason: "{{ item.manual_management_reason | default('') }}"
+      loop: "{{ cyberark_accounts }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Show account details
+      debug:
+        var: cyberark_account_detail

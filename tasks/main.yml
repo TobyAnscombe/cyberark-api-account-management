@@ -1,0 +1,36 @@
+---
+- name: Validate required account management variables
+  assert:
+    that:
+      - cyberark_token is defined
+      - cyberark_token | trim | length > 0
+      - cyberark_subdomain | trim | length > 0
+      - cyberark_account_safe | trim | length > 0
+      - cyberark_account_platform_id | trim | length > 0
+      - cyberark_account_username | trim | length > 0
+      - cyberark_account_state in ['present', 'absent']
+    fail_msg: >-
+      cyberark_token, cyberark_subdomain, cyberark_account_safe,
+      cyberark_account_platform_id, and cyberark_account_username must all be set.
+      cyberark_account_state must be 'present' or 'absent'.
+  run_once: true
+  delegate_to: localhost
+
+- name: Validate CPM management configuration
+  assert:
+    that:
+      - cyberark_account_manual_management_reason | trim | length > 0
+    fail_msg: "cyberark_account_manual_management_reason must be set when cyberark_account_automatic_management_enabled is false"
+  when:
+    - cyberark_account_state == 'present'
+    - not cyberark_account_automatic_management_enabled
+  run_once: true
+  delegate_to: localhost
+
+- name: Ensure account is present
+  include_tasks: account_present.yml
+  when: cyberark_account_state == 'present'
+
+- name: Ensure account is absent
+  include_tasks: account_absent.yml
+  when: cyberark_account_state == 'absent'
