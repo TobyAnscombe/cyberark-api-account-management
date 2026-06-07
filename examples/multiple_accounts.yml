@@ -1,7 +1,7 @@
 ---
 # Example: manage multiple CyberArk accounts in a single play.
 #
-# Calls cyberark_auth once, then iterates over cyberark_accounts with
+# Calls cyberark_api_authentication once, then iterates over cyberark_accounts with
 # include_role so each account is created or updated idempotently.
 #
 # Run:
@@ -12,7 +12,7 @@
 #
 # requirements.yml (install before running):
 #   roles:
-#     - name: cyberark_auth
+#     - name: cyberark_api_authentication
 #       src: https://github.com/TobyAnscombe/cyberark-api-management
 #       version: main
 #     - name: cyberark_account_management
@@ -53,7 +53,7 @@
         state: present
 
   roles:
-    - cyberark_auth
+    - cyberark_api_authentication
 
   tasks:
     - name: Manage account

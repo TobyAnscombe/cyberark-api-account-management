@@ -2,14 +2,14 @@
 
 Ansible role that idempotently creates, updates, or deletes a CyberArk Privilege Cloud account and manages its credentials via the REST API.
 
-Designed to be called after the [`cyberark_auth`](https://github.com/TobyAnscombe/cyberark-api-management) role, which produces the `cyberark_token` required here.
+Designed to be called after the [`cyberark_api_authentication`](https://github.com/TobyAnscombe/cyberark-api-management) role, which produces the `cyberark_token` required here.
 
 ---
 
 ## Requirements
 
 - Ansible 2.9+
-- `cyberark_token` present on the play (produced by `tobyanscombe.cyberark_auth`)
+- `cyberark_token` present on the play (produced by `tobyanscombe.cyberark_api_authentication`)
 - Network access to `https://<subdomain>.privilegecloud.cyberark.cloud`
 
 ---
@@ -20,7 +20,7 @@ Designed to be called after the [`cyberark_auth`](https://github.com/TobyAnscomb
 
 | Variable | Description |
 |---|---|
-| `cyberark_token` | Bearer token from `cyberark_auth` |
+| `cyberark_token` | Bearer token from `cyberark_api_authentication` |
 | `cyberark_subdomain` | Privilege Cloud subdomain |
 | `cyberark_account_safe` | Safe the account lives in |
 | `cyberark_account_platform_id` | Platform ID (e.g. `WinDomain`, `UnixSSHKeys`) |
@@ -74,11 +74,11 @@ Designed to be called after the [`cyberark_auth`](https://github.com/TobyAnscomb
 
 ## Dependencies
 
-None declared. Install `cyberark_auth` via `requirements.yml` and call it before this role:
+None declared. Install `cyberark_api_authentication` via `requirements.yml` and call it before this role:
 
 ```yaml
 roles:
-  - name: cyberark_auth
+  - name: cyberark_api_authentication
     src: https://github.com/TobyAnscombe/cyberark-api-management
     version: main
   - name: cyberark_account_management
@@ -107,7 +107,7 @@ roles:
     cyberark_account_state: present
 
   roles:
-    - cyberark_auth
+    - cyberark_api_authentication
     - cyberark_account_management
 
   tasks:
@@ -141,7 +141,7 @@ roles:
     #   ...
 
   roles:
-    - cyberark_auth
+    - cyberark_api_authentication
     - cyberark_account_management
 ```
 
