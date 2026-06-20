@@ -7,7 +7,7 @@
     msg: "POST /Accounts — {{ cyberark_account_name }} in {{ cyberark_account_safe }} does not exist and would be created"
   when:
     - not cyberark_account_exists
-    - cyberark_dry_run | default(true)
+    - cyberark_dry_run | default(true) | bool
   run_once: true
   delegate_to: localhost
 
@@ -57,7 +57,7 @@
   register: _cyberark_account_create
   when:
     - not cyberark_account_exists
-    - not cyberark_dry_run | default(true)
+    - not cyberark_dry_run | default(true) | bool
   run_once: true
   delegate_to: localhost
 
@@ -66,7 +66,7 @@
     msg: "PATCH /Accounts/{{ cyberark_account_id }} — {{ cyberark_account_name }} exists and would be updated"
   when:
     - cyberark_account_exists
-    - cyberark_dry_run | default(true)
+    - cyberark_dry_run | default(true) | bool
   run_once: true
   delegate_to: localhost
 
@@ -105,7 +105,7 @@
   register: _cyberark_account_update
   when:
     - cyberark_account_exists
-    - not cyberark_dry_run | default(true)
+    - not cyberark_dry_run | default(true) | bool
   run_once: true
   delegate_to: localhost
 
@@ -115,7 +115,7 @@
     cyberark_account_detail: "{{ _cyberark_account_create.json }}"
   when:
     - not cyberark_account_exists
-    - not cyberark_dry_run | default(true)
+    - not cyberark_dry_run | default(true) | bool
   run_once: true
   delegate_to: localhost
 
@@ -124,7 +124,7 @@
     cyberark_account_detail: "{{ _cyberark_account_update.json }}"
   when:
     - cyberark_account_exists
-    - not cyberark_dry_run | default(true)
+    - not cyberark_dry_run | default(true) | bool
   run_once: true
   delegate_to: localhost
 
