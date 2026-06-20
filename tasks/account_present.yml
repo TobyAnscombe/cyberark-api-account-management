@@ -122,6 +122,7 @@
   set_fact:
     _cyberark_account_change_detail: >-
       {%- set cur = _cyberark_account_current -%}
+      {%- set rma = cur.remoteMachinesAccess | default({}) -%}
       {%- set cm = {
         '/name':                                              cur.name | default('') | string,
         '/address':                                           cur.address | default('') | string,
@@ -129,8 +130,8 @@
         '/platformId':                                        cur.platformId | default('') | string,
         '/secretManagement/automaticManagementEnabled':       (cur.secretManagement | default({})).automaticManagementEnabled | default('') | string,
         '/secretManagement/manualManagementReason':           (cur.secretManagement | default({})).manualManagementReason | default('') | string,
-        '/remoteMachinesAccess/remoteMachines':               (cur.remoteMachinesAccess | default({})).remoteMachines | default('') | string,
-        '/remoteMachinesAccess/accessRestrictedToRemoteMachines': (cur.remoteMachinesAccess | default({})).accessRestrictedToRemoteMachines | default('') | string
+        '/remoteMachinesAccess/remoteMachines':               rma.remoteMachines | default('') | string,
+        '/remoteMachinesAccess/accessRestrictedToRemoteMachines': rma.accessRestrictedToRemoteMachines | default('') | string
       } -%}
       {%- set ns = namespace(parts=[]) -%}
       {%- for op in _cyberark_account_patch_ops -%}
@@ -175,7 +176,7 @@
   run_once: true
   delegate_to: localhost
 
-- name: "[DRY RUN] Account {{ cyberark_account_name }} is up to date — no changes needed"
+- name: "[DRY RUN] Account is up to date — no changes needed ({{ cyberark_account_name }})"
   ansible.builtin.debug:
     msg: "{{ cyberark_account_name }} matches desired state — skipping PATCH"
   when:

@@ -14,14 +14,14 @@ cyberark_account_safe: ""
 cyberark_account_platform_id: ""
 cyberark_account_address: ""
 cyberark_account_username: ""
-cyberark_account_state: present   # present | absent
+cyberark_account_state: present # present | absent
 
 # ---------------------------------------------------------------------------
 # Credential
 # ---------------------------------------------------------------------------
-cyberark_account_secret_type: password   # password | key
-cyberark_account_secret: ""              # vault-encrypted; write-only on the API
-cyberark_account_secret_update: false    # set true to push a new credential on every run
+cyberark_account_secret_type: password # password | key
+cyberark_account_secret: "" # vault-encrypted; write-only on the API
+cyberark_account_secret_update: false # set true to push a new credential on every run
 
 # ---------------------------------------------------------------------------
 # Platform-specific properties
@@ -39,7 +39,6 @@ cyberark_account_secret_update: false    # set true to push a new credential on 
 #     Port: "1521"
 #     Database: "ORCL"
 cyberark_account_platform_properties: {}
-
 # ---------------------------------------------------------------------------
 # CPM management
 # ---------------------------------------------------------------------------

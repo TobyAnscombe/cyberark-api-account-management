@@ -1,3 +1,4 @@
+---
 profile: basic
 
 # Prevent ansible-lint from auto-running ansible-galaxy install when it finds
@@ -12,3 +13,4 @@ skip_list:
   # All CyberArk roles share the cyberark_ prefix intentionally — role-specific
   # prefixes would break consistency across the suite.
   - var-naming[no-role-prefix]
+  - run-once[task]

@@ -1,7 +1,8 @@
 ---
 - name: Search for existing account
   uri:
-    url: "https://{{ cyberark_subdomain }}.privilegecloud.cyberark.cloud/passwordvault/api/Accounts?filter=safeName%20eq%20{{ cyberark_account_safe | urlencode }}&search={{ cyberark_account_username | urlencode }}"
+    url: "https://{{ cyberark_subdomain }}.privilegecloud.cyberark.cloud/passwordvault/api/Accounts?filter=safeName%20eq%20{{
+      cyberark_account_safe | urlencode }}&search={{ cyberark_account_username | urlencode }}"
     method: GET
     headers:
       Authorization: "Bearer {{ cyberark_token }}"
