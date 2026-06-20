@@ -1,7 +1,7 @@
 ---
 - name: Search for existing account
   uri:
-    url: "https://{{ cyberark_subdomain }}.privilegecloud.cyberark.cloud/passwordvault/api/Accounts?filter=safeName%20eq%20{{ cyberark_account_safe | urlencode }}&search={{ cyberark_account_name | urlencode }}"
+    url: "https://{{ cyberark_subdomain }}.privilegecloud.cyberark.cloud/passwordvault/api/Accounts?filter=safeName%20eq%20{{ cyberark_account_safe | urlencode }}&search={{ cyberark_account_username | urlencode }}"
     method: GET
     headers:
       Authorization: "Bearer {{ cyberark_token }}"
@@ -12,13 +12,14 @@
   run_once: true
   delegate_to: localhost
 
-# Account names are unique per safe — match on exact name.
+# search is free-text and may return false positives — match client-side on exact userName + address.
 - name: Extract account ID from search results
   set_fact:
     cyberark_account_id: >-
       {%- set ns = namespace(id='') -%}
       {%- for a in _cyberark_account_search.json.value -%}
-        {%- if a.name == cyberark_account_name -%}
+        {%- if a.userName == cyberark_account_username
+               and a.address == cyberark_account_address -%}
           {%- set ns.id = a.id -%}
         {%- endif -%}
       {%- endfor -%}
@@ -26,7 +27,8 @@
     cyberark_account_exists: >-
       {{
         _cyberark_account_search.json.value
-        | selectattr('name', 'equalto', cyberark_account_name)
+        | selectattr('userName', 'equalto', cyberark_account_username)
+        | selectattr('address', 'equalto', cyberark_account_address)
         | list | length > 0
       }}
   run_once: true
