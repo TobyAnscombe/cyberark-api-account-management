@@ -118,6 +118,26 @@
   run_once: true
   delegate_to: localhost
 
+- name: Accumulate account diff in provision summary
+  set_fact:
+    _cyberark_provision_summary: >-
+      {{
+        _cyberark_provision_summary | default([]) + (
+          [{'safe': cyberark_account_safe, 'type': 'account', 'item': cyberark_account_name,
+            'action': 'create', 'detail': ''}]
+          if not cyberark_account_exists
+          else (
+            [{'safe': cyberark_account_safe, 'type': 'account', 'item': cyberark_account_name,
+              'action': 'update',
+              'detail': _cyberark_account_patch_ops | map(attribute='path') | join(', ')}]
+            if _cyberark_account_patch_ops | length > 0
+            else []
+          )
+        )
+      }}
+  run_once: true
+  delegate_to: localhost
+
 - name: "[DRY RUN] Would update account {{ cyberark_account_name }}"
   ansible.builtin.debug:
     msg: >-
