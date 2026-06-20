@@ -2,6 +2,8 @@
 # Required — set in playbook vars; cyberark_token is produced by the cyberark_api_authentication role
 cyberark_subdomain: ""
 
+cyberark_dry_run: true
+
 cyberark_validate_certs: true
 
 # ---------------------------------------------------------------------------

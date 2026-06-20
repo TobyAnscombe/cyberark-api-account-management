@@ -2,6 +2,15 @@
 - name: Look up existing account
   include_tasks: account_lookup.yml
 
+- name: "[DRY RUN] Would create account {{ cyberark_account_name }}"
+  ansible.builtin.debug:
+    msg: "POST /Accounts — {{ cyberark_account_name }} in {{ cyberark_account_safe }} does not exist and would be created"
+  when:
+    - not cyberark_account_exists
+    - cyberark_dry_run | default(true)
+  run_once: true
+  delegate_to: localhost
+
 - name: Create account
   uri:
     url: "https://{{ cyberark_subdomain }}.privilegecloud.cyberark.cloud/passwordvault/api/Accounts"
@@ -25,6 +34,14 @@
             'manualManagementReason': cyberark_account_manual_management_reason
           }
         } | combine(
+          {'secret': cyberark_account_secret}
+          if cyberark_account_secret | trim | length > 0
+          else {}
+        ) | combine(
+          {'platformAccountProperties': cyberark_account_platform_properties}
+          if cyberark_account_platform_properties
+          else {}
+        ) | combine(
           {'remoteMachinesAccess': {
             'remoteMachines': cyberark_account_remote_machines,
             'accessRestrictedToRemoteMachines': cyberark_account_access_restricted_to_remote_machines
@@ -38,7 +55,18 @@
     validate_certs: "{{ cyberark_validate_certs }}"
   no_log: true
   register: _cyberark_account_create
-  when: not cyberark_account_exists
+  when:
+    - not cyberark_account_exists
+    - not cyberark_dry_run | default(true)
+  run_once: true
+  delegate_to: localhost
+
+- name: "[DRY RUN] Would update account {{ cyberark_account_name }}"
+  ansible.builtin.debug:
+    msg: "PATCH /Accounts/{{ cyberark_account_id }} — {{ cyberark_account_name }} exists and would be updated"
+  when:
+    - cyberark_account_exists
+    - cyberark_dry_run | default(true)
   run_once: true
   delegate_to: localhost
 
@@ -75,7 +103,9 @@
     timeout: 30
     validate_certs: "{{ cyberark_validate_certs }}"
   register: _cyberark_account_update
-  when: cyberark_account_exists
+  when:
+    - cyberark_account_exists
+    - not cyberark_dry_run | default(true)
   run_once: true
   delegate_to: localhost
 
@@ -83,14 +113,18 @@
   set_fact:
     cyberark_account_id: "{{ _cyberark_account_create.json.id }}"
     cyberark_account_detail: "{{ _cyberark_account_create.json }}"
-  when: not cyberark_account_exists
+  when:
+    - not cyberark_account_exists
+    - not cyberark_dry_run | default(true)
   run_once: true
   delegate_to: localhost
 
 - name: Expose updated account as fact
   set_fact:
     cyberark_account_detail: "{{ _cyberark_account_update.json }}"
-  when: cyberark_account_exists
+  when:
+    - cyberark_account_exists
+    - not cyberark_dry_run | default(true)
   run_once: true
   delegate_to: localhost
 
