@@ -15,15 +15,13 @@
 # search is free-text and may return false positives — match client-side on exact userName + address.
 - name: Extract account ID from search results
   set_fact:
-    cyberark_account_id: >-
-      {%- set ns = namespace(id='') -%}
-      {%- for a in _cyberark_account_search.json.value -%}
-        {%- if a.userName == cyberark_account_username
-               and a.address == cyberark_account_address -%}
-          {%- set ns.id = a.id -%}
-        {%- endif -%}
-      {%- endfor -%}
-      {{ ns.id }}
+    _cyberark_account_current: >-
+      {{
+        _cyberark_account_search.json.value
+        | selectattr('userName', 'equalto', cyberark_account_username)
+        | selectattr('address', 'equalto', cyberark_account_address)
+        | list | first | default({})
+      }}
     cyberark_account_exists: >-
       {{
         _cyberark_account_search.json.value
@@ -31,5 +29,11 @@
         | selectattr('address', 'equalto', cyberark_account_address)
         | list | length > 0
       }}
+  run_once: true
+  delegate_to: localhost
+
+- name: Set account ID from current state
+  set_fact:
+    cyberark_account_id: "{{ _cyberark_account_current.id | default('') }}"
   run_once: true
   delegate_to: localhost

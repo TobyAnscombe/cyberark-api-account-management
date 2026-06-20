@@ -61,11 +61,81 @@
   run_once: true
   delegate_to: localhost
 
-- name: "[DRY RUN] Would update account {{ cyberark_account_name }}"
-  ansible.builtin.debug:
-    msg: "PATCH /Accounts/{{ cyberark_account_id }} — {{ cyberark_account_name }} exists and would be updated"
+- name: Build account patch operations
+  set_fact:
+    _cyberark_account_patch_ops: >-
+      {{
+        (
+          [{'op': 'replace', 'path': '/name', 'value': cyberark_account_name}]
+          if (_cyberark_account_current.name | default('')) != cyberark_account_name
+          else []
+        ) + (
+          [{'op': 'replace', 'path': '/address', 'value': cyberark_account_address}]
+          if (_cyberark_account_current.address | default('')) != cyberark_account_address
+          else []
+        ) + (
+          [{'op': 'replace', 'path': '/userName', 'value': cyberark_account_username}]
+          if (_cyberark_account_current.userName | default('')) != cyberark_account_username
+          else []
+        ) + (
+          [{'op': 'replace', 'path': '/platformId', 'value': cyberark_account_platform_id}]
+          if (_cyberark_account_current.platformId | default('')) != cyberark_account_platform_id
+          else []
+        ) + (
+          [{'op': 'replace', 'path': '/secretManagement/automaticManagementEnabled',
+            'value': cyberark_account_automatic_management_enabled}]
+          if ((_cyberark_account_current.secretManagement | default({})).automaticManagementEnabled | default(true) | bool)
+             != (cyberark_account_automatic_management_enabled | bool)
+          else []
+        ) + (
+          [{'op': 'replace', 'path': '/secretManagement/manualManagementReason',
+            'value': cyberark_account_manual_management_reason}]
+          if ((_cyberark_account_current.secretManagement | default({})).manualManagementReason | default(''))
+             != cyberark_account_manual_management_reason
+          else []
+        ) + (
+          [
+            {'op': 'replace', 'path': '/remoteMachinesAccess/remoteMachines',
+              'value': cyberark_account_remote_machines},
+            {'op': 'replace', 'path': '/remoteMachinesAccess/accessRestrictedToRemoteMachines',
+              'value': cyberark_account_access_restricted_to_remote_machines}
+          ]
+          if (
+            cyberark_account_remote_machines | trim | length > 0
+            and (
+              ((_cyberark_account_current.remoteMachinesAccess | default({})).remoteMachines | default(''))
+                != cyberark_account_remote_machines
+              or
+              ((_cyberark_account_current.remoteMachinesAccess | default({})).accessRestrictedToRemoteMachines | default(false) | bool)
+                != (cyberark_account_access_restricted_to_remote_machines | bool)
+            )
+          )
+          else []
+        )
+      }}
   when:
     - cyberark_account_exists
+  run_once: true
+  delegate_to: localhost
+
+- name: "[DRY RUN] Would update account {{ cyberark_account_name }}"
+  ansible.builtin.debug:
+    msg: >-
+      PATCH /Accounts/{{ cyberark_account_id }} — {{ cyberark_account_name }} would change:
+      {{ _cyberark_account_patch_ops | map(attribute='path') | join(', ') }}
+  when:
+    - cyberark_account_exists
+    - _cyberark_account_patch_ops | length > 0
+    - cyberark_dry_run | default(true) | bool
+  run_once: true
+  delegate_to: localhost
+
+- name: "[DRY RUN] Account {{ cyberark_account_name }} is up to date — no changes needed"
+  ansible.builtin.debug:
+    msg: "{{ cyberark_account_name }} matches desired state — skipping PATCH"
+  when:
+    - cyberark_account_exists
+    - _cyberark_account_patch_ops | length == 0
     - cyberark_dry_run | default(true) | bool
   run_once: true
   delegate_to: localhost
@@ -77,34 +147,14 @@
     headers:
       Authorization: "Bearer {{ cyberark_token }}"
     body_format: json
-    body: >-
-      {{
-        [
-          {'op': 'replace', 'path': '/name',        'value': cyberark_account_name},
-          {'op': 'replace', 'path': '/address',     'value': cyberark_account_address},
-          {'op': 'replace', 'path': '/userName',    'value': cyberark_account_username},
-          {'op': 'replace', 'path': '/platformId',  'value': cyberark_account_platform_id},
-          {'op': 'replace', 'path': '/secretManagement/automaticManagementEnabled',
-                            'value': cyberark_account_automatic_management_enabled},
-          {'op': 'replace', 'path': '/secretManagement/manualManagementReason',
-                            'value': cyberark_account_manual_management_reason}
-        ] + (
-          [
-            {'op': 'replace', 'path': '/remoteMachinesAccess/remoteMachines',
-                              'value': cyberark_account_remote_machines},
-            {'op': 'replace', 'path': '/remoteMachinesAccess/accessRestrictedToRemoteMachines',
-                              'value': cyberark_account_access_restricted_to_remote_machines}
-          ]
-          if cyberark_account_remote_machines | trim | length > 0
-          else []
-        )
-      }}
+    body: "{{ _cyberark_account_patch_ops }}"
     status_code: [200]
     timeout: 30
     validate_certs: "{{ cyberark_validate_certs }}"
   register: _cyberark_account_update
   when:
     - cyberark_account_exists
+    - _cyberark_account_patch_ops | length > 0
     - not cyberark_dry_run | default(true) | bool
   run_once: true
   delegate_to: localhost
@@ -124,6 +174,7 @@
     cyberark_account_detail: "{{ _cyberark_account_update.json }}"
   when:
     - cyberark_account_exists
+    - _cyberark_account_patch_ops | length > 0
     - not cyberark_dry_run | default(true) | bool
   run_once: true
   delegate_to: localhost
