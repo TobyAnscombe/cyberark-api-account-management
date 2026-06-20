@@ -153,9 +153,10 @@ See [`examples/multiple_accounts.yml`](examples/multiple_accounts.yml).
 
 ## Notes
 
-- **Account lookup**: accounts have no human-readable unique key — the role resolves the GUID on every run via a `GET` filtered by `safeName`, `userName`, and `address`.
-- **Update method**: the Accounts API uses JSON Patch (`PATCH`), not `PUT`.
+- **Account lookup**: the role resolves the account GUID on every run via a `GET` filtered by `safeName` and then an exact client-side match on `name`. Account names are unique per safe in Privilege Cloud.
+- **Update method**: the Accounts API uses JSON Patch (`PATCH`), not `PUT`. The role computes the diff first and skips the PATCH entirely when nothing has changed.
 - **Secrets**: the API never returns the stored credential. `cyberark_account_secret_update: false` (default) means the credential is only pushed on create, keeping runs idempotent with respect to the stored value.
+- **Provision summary**: the role appends to a `_cyberark_provision_summary` fact on the play. Each changed account adds a row with `action: update` and a `detail` string showing `path: "current" → "proposed"` for each changed field. Callers can render this fact (e.g. as an HTML report) at the end of the playbook.
 
 ---
 
