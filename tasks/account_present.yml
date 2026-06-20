@@ -118,6 +118,31 @@
   run_once: true
   delegate_to: localhost
 
+- name: Build account change detail
+  set_fact:
+    _cyberark_account_change_detail: >-
+      {%- set cur = _cyberark_account_current -%}
+      {%- set cm = {
+        '/name':                                              cur.name | default('') | string,
+        '/address':                                           cur.address | default('') | string,
+        '/userName':                                          cur.userName | default('') | string,
+        '/platformId':                                        cur.platformId | default('') | string,
+        '/secretManagement/automaticManagementEnabled':       (cur.secretManagement | default({})).automaticManagementEnabled | default('') | string,
+        '/secretManagement/manualManagementReason':           (cur.secretManagement | default({})).manualManagementReason | default('') | string,
+        '/remoteMachinesAccess/remoteMachines':               (cur.remoteMachinesAccess | default({})).remoteMachines | default('') | string,
+        '/remoteMachinesAccess/accessRestrictedToRemoteMachines': (cur.remoteMachinesAccess | default({})).accessRestrictedToRemoteMachines | default('') | string
+      } -%}
+      {%- set ns = namespace(parts=[]) -%}
+      {%- for op in _cyberark_account_patch_ops -%}
+        {%- set ns.parts = ns.parts + [op.path ~ ': "' ~ cm.get(op.path, '') ~ '" → "' ~ op.value | string ~ '"'] -%}
+      {%- endfor -%}
+      {{ ns.parts | join(' | ') }}
+  when:
+    - cyberark_account_exists
+    - _cyberark_account_patch_ops | length > 0
+  run_once: true
+  delegate_to: localhost
+
 - name: Accumulate account diff in provision summary
   set_fact:
     _cyberark_provision_summary: >-
@@ -129,7 +154,7 @@
           else (
             [{'safe': cyberark_account_safe, 'type': 'account', 'item': cyberark_account_name,
               'action': 'update',
-              'detail': _cyberark_account_patch_ops | map(attribute='path') | join(', ')}]
+              'detail': _cyberark_account_change_detail | default('')}]
             if _cyberark_account_patch_ops | length > 0
             else []
           )
