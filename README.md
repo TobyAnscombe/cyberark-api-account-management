@@ -55,6 +55,13 @@ Designed to be called after the [`cyberark_api_authentication`](https://github.c
 | `cyberark_account_automatic_management_enabled` | `true` | Let CyberArk CPM rotate the credential automatically |
 | `cyberark_account_manual_management_reason` | `""` | Required when `automatic_management_enabled` is `false` |
 
+### PSM remote machine access
+
+| Variable | Default | Description |
+|---|---|---|
+| `cyberark_account_remote_machines` | `""` | Semicolon-separated list of machines this account may connect to via PSM. Empty = field omitted from API body (no restriction). |
+| `cyberark_account_access_restricted_to_remote_machines` | `false` | `true` enforces the list as an allowlist; `false` records preferred machines without blocking others. Has no effect when `remote_machines` is empty. |
+
 ### Other
 
 | Variable | Default | Description |
