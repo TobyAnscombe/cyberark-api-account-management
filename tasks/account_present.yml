@@ -94,21 +94,21 @@
              != cyberark_account_manual_management_reason
           else []
         ) + (
-          [
-            {'op': 'replace', 'path': '/remoteMachinesAccess/remoteMachines',
-              'value': cyberark_account_remote_machines},
-            {'op': 'replace', 'path': '/remoteMachinesAccess/accessRestrictedToRemoteMachines',
-              'value': cyberark_account_access_restricted_to_remote_machines}
-          ]
+          [{'op': 'replace', 'path': '/remoteMachinesAccess/remoteMachines',
+            'value': cyberark_account_remote_machines}]
           if (
             cyberark_account_remote_machines | trim | length > 0
-            and (
-              ((_cyberark_account_current.remoteMachinesAccess | default({})).remoteMachines | default(''))
-                != cyberark_account_remote_machines
-              or
-              ((_cyberark_account_current.remoteMachinesAccess | default({})).accessRestrictedToRemoteMachines | default(false) | bool)
-                != (cyberark_account_access_restricted_to_remote_machines | bool)
-            )
+            and ((_cyberark_account_current.remoteMachinesAccess | default({})).remoteMachines | default(''))
+              != cyberark_account_remote_machines
+          )
+          else []
+        ) + (
+          [{'op': 'replace', 'path': '/remoteMachinesAccess/accessRestrictedToRemoteMachines',
+            'value': cyberark_account_access_restricted_to_remote_machines}]
+          if (
+            cyberark_account_remote_machines | trim | length > 0
+            and ((_cyberark_account_current.remoteMachinesAccess | default({})).accessRestrictedToRemoteMachines | default(false) | bool)
+              != (cyberark_account_access_restricted_to_remote_machines | bool)
           )
           else []
         )
