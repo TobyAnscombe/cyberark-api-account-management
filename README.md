@@ -87,10 +87,10 @@ None declared. Install `cyberark_api_authentication` via `requirements.yml` and 
 roles:
   - name: cyberark_api_authentication
     src: https://github.com/TobyAnscombe/cyberark-api-management
-    version: main
+    version: v1.0.2
   - name: cyberark_account_management
     src: https://github.com/TobyAnscombe/cyberark-api-account-management
-    version: main
+    version: v1.1.10
 ```
 
 ---
@@ -162,6 +162,8 @@ See [`examples/multiple_accounts.yml`](examples/multiple_accounts.yml).
 
 - **Account lookup**: the role resolves the account GUID on every run via a `GET` filtered by `safeName` and then an exact client-side match on `name`. Account names are unique per safe in Privilege Cloud.
 - **Update method**: the Accounts API uses JSON Patch (`PATCH`), not `PUT`. The role computes the diff first and skips the PATCH entirely when nothing has changed.
+- **Remote machines — pre-clear**: when `remote_machines` needs updating, the role issues a clear PATCH (`remoteMachines: ""`) immediately before the update PATCH. This is required because portal-introduced duplicate machine entries cause a standard PATCH to be silently ignored (the API returns 200 but applies no change). The clear resets the field to a clean state so the subsequent set takes effect.
+- **secretManagement fields**: `automaticManagementEnabled` and `manualManagementReason` are only stored and expressed by CyberArk when the safe has a CPM assigned (`managing_cpm` set to a non-empty value). In safes with no CPM these fields are effectively ignored by the platform.
 - **Secrets**: the API never returns the stored credential. `cyberark_account_secret_update: false` (default) means the credential is only pushed on create, keeping runs idempotent with respect to the stored value.
 - **Provision summary**: the role appends to a `_cyberark_provision_summary` fact on the play. Each changed account adds a row with `action: update` and a `detail` string showing `path: "current" → "proposed"` for each changed field. Callers can render this fact (e.g. as an HTML report) at the end of the playbook.
 
