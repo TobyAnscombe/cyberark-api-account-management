@@ -14,21 +14,36 @@
   delegate_to: localhost
 
 # search is free-text and may return false positives — match client-side on exact userName + address.
+# When cyberark_account_address is empty (e.g. Azure/Entra accounts stored without an address field),
+# match on userName only. When set, guard with selectattr('address', 'defined') first to prevent
+# AttributeError on accounts that have no address key in the API response.
 - name: Extract account ID from search results
   set_fact:
     _cyberark_account_current: >-
       {{
-        _cyberark_account_search.json.value
-        | selectattr('userName', 'equalto', cyberark_account_username)
-        | selectattr('address', 'equalto', cyberark_account_address)
-        | list | first | default({})
+        (
+          _cyberark_account_search.json.value
+          | selectattr('userName', 'equalto', cyberark_account_username)
+          | selectattr('address', 'defined')
+          | selectattr('address', 'equalto', cyberark_account_address)
+          if cyberark_account_address | length > 0
+          else
+          _cyberark_account_search.json.value
+          | selectattr('userName', 'equalto', cyberark_account_username)
+        ) | list | first | default({})
       }}
     cyberark_account_exists: >-
       {{
-        _cyberark_account_search.json.value
-        | selectattr('userName', 'equalto', cyberark_account_username)
-        | selectattr('address', 'equalto', cyberark_account_address)
-        | list | length > 0
+        (
+          _cyberark_account_search.json.value
+          | selectattr('userName', 'equalto', cyberark_account_username)
+          | selectattr('address', 'defined')
+          | selectattr('address', 'equalto', cyberark_account_address)
+          if cyberark_account_address | length > 0
+          else
+          _cyberark_account_search.json.value
+          | selectattr('userName', 'equalto', cyberark_account_username)
+        ) | list | length > 0
       }}
   run_once: true
   delegate_to: localhost
