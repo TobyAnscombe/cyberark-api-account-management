@@ -61,3 +61,21 @@ cyberark_account_manual_management_reason: ""
 #   cyberark_account_access_restricted_to_remote_machines: true
 cyberark_account_remote_machines: ""
 cyberark_account_access_restricted_to_remote_machines: false
+
+# ---------------------------------------------------------------------------
+# Reconciliation account
+# ---------------------------------------------------------------------------
+# Links this account to an existing reconcile account (CyberArk linked account,
+# extraPasswordIndex 3) so the CPM can reset the credential via reconciliation
+# when it cannot verify or change it directly. The reconcile account must
+# already exist in Privilege Cloud and its platform must support reconciliation.
+# cyberark_account_reconcile_account_name is the reconcile account's *display
+# name* in the vault (its "name" field), not its username.
+# Leave both empty to skip. Additive only — the role does not unlink an
+# existing reconcile account when these are cleared back to "".
+#
+# Example:
+#   cyberark_account_reconcile_safe: "htb-reconciliations"
+#   cyberark_account_reconcile_account_name: "Operating System-SVC_CyberArk_Recon-htbplc.net-SVC_CyberArk_Recon"
+cyberark_account_reconcile_safe: ""
+cyberark_account_reconcile_account_name: ""

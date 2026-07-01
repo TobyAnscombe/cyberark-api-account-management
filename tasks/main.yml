@@ -27,6 +27,16 @@
   run_once: true
   delegate_to: localhost
 
+- name: Validate reconciliation account configuration
+  assert:
+    that:
+      - (cyberark_account_reconcile_safe | trim | length > 0) == (cyberark_account_reconcile_account_name | trim | length > 0)
+    fail_msg: "cyberark_account_reconcile_safe and cyberark_account_reconcile_account_name must be set together"
+  when:
+    - cyberark_account_state == 'present'
+  run_once: true
+  delegate_to: localhost
+
 - name: Ensure account is present
   include_tasks: account_present.yml
   when: cyberark_account_state == 'present'

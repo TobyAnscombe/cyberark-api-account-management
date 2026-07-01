@@ -62,6 +62,15 @@ Designed to be called after the [`cyberark_api_authentication`](https://github.c
 | `cyberark_account_remote_machines` | `""` | Semicolon-separated list of machines this account may connect to via PSM. Empty = field omitted from API body (no restriction). |
 | `cyberark_account_access_restricted_to_remote_machines` | `false` | `true` enforces the list as an allowlist; `false` records preferred machines without blocking others. Has no effect when `remote_machines` is empty. |
 
+### Reconciliation account
+
+| Variable | Default | Description |
+|---|---|---|
+| `cyberark_account_reconcile_safe` | `""` | Safe containing the reconcile account to link |
+| `cyberark_account_reconcile_account_name` | `""` | Display **name** of the reconcile account (its `name` field in the vault, not its username) |
+
+Both must be set together, or both left empty. Linking is additive only — the role does not unlink an existing reconcile account when these are cleared back to `""`.
+
 ### Other
 
 | Variable | Default | Description |
@@ -152,6 +161,32 @@ roles:
     - cyberark_account_management
 ```
 
+## Example Playbook — linked to a reconciliation account
+
+```yaml
+- name: Vault Windows account with reconciliation
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    cyberark_identity_tenant: "YOUR_TENANT_ID"
+    cyberark_subdomain: "YOUR_SUBDOMAIN"
+
+    cyberark_account_safe: "windows-safe"
+    cyberark_account_platform_id: "WinDomain"
+    cyberark_account_address: "corp.example.com"
+    cyberark_account_username: "svc_myapp"
+    cyberark_account_name: "corp.example.com-svc_myapp"
+    cyberark_account_state: present
+
+    cyberark_account_reconcile_safe: "reconciliations"
+    cyberark_account_reconcile_account_name: "Operating System-SVC_Reconcile-corp.example.com-SVC_Reconcile"
+
+  roles:
+    - cyberark_api_authentication
+    - cyberark_account_management
+```
+
 ## Example Playbook — multiple accounts
 
 See [`examples/multiple_accounts.yml`](examples/multiple_accounts.yml).
@@ -166,6 +201,7 @@ See [`examples/multiple_accounts.yml`](examples/multiple_accounts.yml).
 - **secretManagement fields**: `automaticManagementEnabled` and `manualManagementReason` are only stored and expressed by CyberArk when the safe has a CPM assigned (`managing_cpm` set to a non-empty value). In safes with no CPM these fields are effectively ignored by the platform.
 - **Secrets**: the API never returns the stored credential. `cyberark_account_secret_update: false` (default) means the credential is only pushed on create, keeping runs idempotent with respect to the stored value.
 - **Provision summary**: the role appends to a `_cyberark_provision_summary` fact on the play. Each changed account adds a row with `action: update` and a `detail` string showing `path: "current" → "proposed"` for each changed field. Callers can render this fact (e.g. as an HTML report) at the end of the playbook.
+- **Reconciliation account**: linking is done via `POST /Accounts/{id}/LinkAccount` with `extraPasswordIndex: "3"`. The Accounts API has no endpoint to read back an account's current linked accounts, so — unlike every other field this role manages — the link call is not diffed against current state; it is issued on every run where both reconcile variables are set. Re-linking to the same reconcile account is a harmless no-op on CyberArk's side; re-linking to a *different* reconcile account replaces the existing link. There is currently no supported way to remove a reconcile account link via this role.
 
 ---
 

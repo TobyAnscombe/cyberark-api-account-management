@@ -246,6 +246,12 @@
   run_once: true
   delegate_to: localhost
 
+- name: Link reconcile account
+  include_tasks: account_reconcile.yml
+  when:
+    - cyberark_account_reconcile_safe | trim | length > 0
+    - cyberark_account_reconcile_account_name | trim | length > 0
+
 - name: Update account secret
   include_tasks: account_secret.yml
   when:
