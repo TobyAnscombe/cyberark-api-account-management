@@ -10,18 +10,24 @@
     timeout: 30
     validate_certs: "{{ cyberark_validate_certs }}"
   register: _cyberark_account_search
+  no_log: true
   run_once: true
   delegate_to: localhost
 
-# search is free-text and may return false positives — match client-side on exact userName + address.
+# Account names are unique per safe, so match on 'name' first when it's set —
+# this is the documented lookup key. Fall back to the userName(+address)
+# client-side match (search is free-text and may return false positives) only
+# when the caller hasn't supplied cyberark_account_name, since userName+address
+# is not guaranteed unique (e.g. the same user/host onboarded under two
+# platforms in the same safe).
 # When cyberark_account_address is empty (e.g. Azure/Entra accounts stored without an address field),
 # match on userName only. When set, guard with selectattr('address', 'defined') first to prevent
 # AttributeError on accounts that have no address key in the API response.
 - name: Extract account ID from search results
   set_fact:
     _cyberark_account_current: >-
-      {{
-        (
+      {%- set _by_name = _cyberark_account_search.json.value | selectattr('name', 'equalto', cyberark_account_name) | list -%}
+      {%- set _by_username = (
           _cyberark_account_search.json.value
           | selectattr('userName', 'equalto', cyberark_account_username)
           | selectattr('address', 'defined')
@@ -30,11 +36,14 @@
           else
           _cyberark_account_search.json.value
           | selectattr('userName', 'equalto', cyberark_account_username)
-        ) | list | first | default({})
+        ) | list -%}
+      {{
+        (_by_name if cyberark_account_name | trim | length > 0 else _by_username)
+        | first | default({})
       }}
     cyberark_account_exists: >-
-      {{
-        (
+      {%- set _by_name = _cyberark_account_search.json.value | selectattr('name', 'equalto', cyberark_account_name) | list -%}
+      {%- set _by_username = (
           _cyberark_account_search.json.value
           | selectattr('userName', 'equalto', cyberark_account_username)
           | selectattr('address', 'defined')
@@ -43,7 +52,10 @@
           else
           _cyberark_account_search.json.value
           | selectattr('userName', 'equalto', cyberark_account_username)
-        ) | list | length > 0
+        ) | list -%}
+      {{
+        (_by_name if cyberark_account_name | trim | length > 0 else _by_username)
+        | length > 0
       }}
   run_once: true
   delegate_to: localhost

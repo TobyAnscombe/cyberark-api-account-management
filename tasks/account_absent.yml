@@ -2,6 +2,15 @@
 - name: Look up existing account
   include_tasks: account_lookup.yml
 
+- name: "[DRY RUN] Would delete account {{ cyberark_account_name }}"
+  ansible.builtin.debug:
+    msg: "DELETE /Accounts — {{ cyberark_account_name }} in {{ cyberark_account_safe }} exists and would be deleted"
+  when:
+    - cyberark_account_exists
+    - cyberark_dry_run | default(true) | bool
+  run_once: true
+  delegate_to: localhost
+
 - name: Delete account
   uri:
     url: "https://{{ cyberark_subdomain }}.privilegecloud.cyberark.cloud/passwordvault/api/Accounts/{{ cyberark_account_id }}"
@@ -11,6 +20,9 @@
     status_code: [204]
     timeout: 30
     validate_certs: "{{ cyberark_validate_certs }}"
-  when: cyberark_account_exists
+  no_log: true
+  when:
+    - cyberark_account_exists
+    - not cyberark_dry_run | default(true) | bool
   run_once: true
   delegate_to: localhost
