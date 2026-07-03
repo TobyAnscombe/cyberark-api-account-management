@@ -96,10 +96,10 @@ No hard Ansible Galaxy `meta/main.yml` dependency — the role only asserts that
 roles:
   - name: cyberark_api_authentication
     src: https://github.com/TobyAnscombe/cyberark-api-management
-    version: v1.0.2
+    version: v1.1.0
   - name: cyberark_account_management
     src: https://github.com/TobyAnscombe/cyberark-api-account-management
-    version: v1.2.1
+    version: v1.3.0
 ```
 
 ---
