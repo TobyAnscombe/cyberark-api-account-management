@@ -13,6 +13,7 @@
   no_log: true
   run_once: true
   delegate_to: localhost
+  check_mode: false
 
 # Account names are unique per safe, so match on 'name' first when it's set —
 # this is the documented lookup key. Fall back to the userName(+address)

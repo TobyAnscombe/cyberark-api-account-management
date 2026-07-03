@@ -90,7 +90,7 @@ Both must be set together, or both left empty. Linking is additive only — the 
 
 ## Dependencies
 
-None declared. Install `cyberark_api_authentication` via `requirements.yml` and call it before this role:
+No hard Ansible Galaxy `meta/main.yml` dependency — the role only asserts that `cyberark_token` is already defined and non-empty. Install `cyberark_api_authentication` via `requirements.yml` and call it before this role (or supply `cyberark_token` by any other means):
 
 ```yaml
 roles:
