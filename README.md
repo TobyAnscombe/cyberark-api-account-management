@@ -8,7 +8,7 @@ Designed to be called after the [`cyberark_api_authentication`](https://github.c
 
 ## Requirements
 
-- Ansible 2.9+
+- Ansible 2.14+
 - `cyberark_token` present on the play (produced by `tobyanscombe.cyberark_api_authentication`)
 - Network access to `https://<subdomain>.privilegecloud.cyberark.cloud`
 
