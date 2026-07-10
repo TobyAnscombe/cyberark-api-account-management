@@ -252,6 +252,19 @@
     - cyberark_account_reconcile_safe | trim | length > 0
     - cyberark_account_reconcile_account_name | trim | length > 0
 
+- name: "Secret supplied but not applied (cyberark_account_secret_update is false)"
+  ansible.builtin.debug:
+    msg: >-
+      cyberark_account_secret was supplied for {{ cyberark_account_name }} but the account already
+      exists and cyberark_account_secret_update is false — the existing credential was left
+      unchanged. Set cyberark_account_secret_update: true to push this value.
+  when:
+    - cyberark_account_secret | trim | length > 0
+    - cyberark_account_exists
+    - not cyberark_account_secret_update
+  run_once: true
+  delegate_to: localhost
+
 - name: Update account secret
   include_tasks: account_secret.yml
   when:
