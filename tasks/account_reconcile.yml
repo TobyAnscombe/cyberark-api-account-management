@@ -65,13 +65,38 @@
   run_once: true
   delegate_to: localhost
 
+- name: Determine whether the reconcile link needs to change
+  ansible.builtin.set_fact:
+    _cyberark_reconcile_needs_link: "{{ _cyberark_current_reconcile_id != _cyberark_reconcile_account_id }}"
+  run_once: true
+  delegate_to: localhost
+
+# Accumulated unconditionally (both dry-run and live) so the provision
+# summary's change count is accurate during a dry-run preview, not just
+# after a live apply — mirrors account_present.yml's "Accumulate account
+# diff" task, which runs before the gated create/update tasks below it.
+- name: Accumulate reconcile link in provision summary
+  set_fact:
+    _cyberark_provision_summary: >-
+      {{
+        _cyberark_provision_summary | default([]) + [{
+          'safe': cyberark_account_safe, 'type': 'account', 'item': cyberark_account_name,
+          'action': 'link-reconcile',
+          'detail': 'reconcile account -> ' ~ cyberark_account_reconcile_safe ~ '/' ~ cyberark_account_reconcile_account_name
+        }]
+      }}
+  when:
+    - _cyberark_reconcile_needs_link
+  run_once: true
+  delegate_to: localhost
+
 - name: "[DRY RUN] Would link reconcile account for {{ cyberark_account_name }}"
   ansible.builtin.debug:
     msg: >-
       POST /Accounts/{{ cyberark_account_id }}/LinkAccount — {{ cyberark_account_name }} would be linked to
       reconcile account "{{ cyberark_account_reconcile_account_name }}" in safe {{ cyberark_account_reconcile_safe }}
   when:
-    - _cyberark_current_reconcile_id != _cyberark_reconcile_account_id
+    - _cyberark_reconcile_needs_link
     - cyberark_dry_run | default(true) | bool
   run_once: true
   delegate_to: localhost
@@ -80,7 +105,7 @@
   ansible.builtin.debug:
     msg: "{{ cyberark_account_name }} already linked to the desired reconcile account — skipping"
   when:
-    - _cyberark_current_reconcile_id == _cyberark_reconcile_account_id
+    - not _cyberark_reconcile_needs_link
     - cyberark_dry_run | default(true) | bool
   run_once: true
   delegate_to: localhost
@@ -103,24 +128,7 @@
   register: _cyberark_account_reconcile_link
   no_log: true
   when:
-    - _cyberark_current_reconcile_id != _cyberark_reconcile_account_id
+    - _cyberark_reconcile_needs_link
     - not cyberark_dry_run | default(true) | bool
-  run_once: true
-  delegate_to: localhost
-
-- name: Accumulate reconcile link in provision summary
-  set_fact:
-    _cyberark_provision_summary: >-
-      {{
-        _cyberark_provision_summary | default([]) + [{
-          'safe': cyberark_account_safe, 'type': 'account', 'item': cyberark_account_name,
-          'action': 'link-reconcile',
-          'detail': 'reconcile account -> ' ~ cyberark_account_reconcile_safe ~ '/' ~ cyberark_account_reconcile_account_name
-        }]
-      }}
-  when:
-    - _cyberark_current_reconcile_id != _cyberark_reconcile_account_id
-    - not cyberark_dry_run | default(true) | bool
-    - _cyberark_account_reconcile_link is succeeded
   run_once: true
   delegate_to: localhost
