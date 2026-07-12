@@ -99,7 +99,7 @@ roles:
     version: v1.1.0
   - name: cyberark_account_management
     src: https://github.com/TobyAnscombe/cyberark-api-account-management
-    version: v1.3.2
+    version: v1.3.3
 ```
 
 ---
