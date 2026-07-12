@@ -1,13 +1,29 @@
 ---
+# A consuming playbook typically loops this role over many accounts that
+# share one reconcile target, so the desired-ID GET is only re-issued when
+# the safe/name pair actually changes from what was last resolved — avoids
+# re-resolving the same identical target on every loop iteration.
+- name: Determine whether the desired reconcile account needs re-resolving
+  ansible.builtin.set_fact:
+    _cyberark_reconcile_needs_resolve: >-
+      {{
+        (_cyberark_reconcile_resolved_key | default(''))
+        != (cyberark_account_reconcile_safe ~ '::' ~ cyberark_account_reconcile_account_name)
+      }}
+  run_once: true
+  delegate_to: localhost
+
 - name: "Look up desired reconcile account ID ({{ cyberark_account_reconcile_account_name }})"
   # No search= term: free-text search does not reliably match multi-word
   # display names (confirmed live — searching "HTB Domain Reconcile Account"
-  # returned an unrelated account instead of the exact-name match). The
-  # reconcile safe is small, so filter by safe only and match name client-side,
-  # same precision-first approach as account_lookup.yml's name-match path.
+  # returned an unrelated account instead of the exact-name match). Filter by
+  # safe only and match name client-side. limit=1000 (the API's practical max
+  # page size) is set explicitly because the default page size is only 50 —
+  # without it, a reconcile safe with more than 50 accounts could silently
+  # fail to resolve an account that's actually present on a later page.
   ansible.builtin.uri:
     url: >-
-      https://{{ cyberark_subdomain }}.privilegecloud.cyberark.cloud/passwordvault/api/Accounts?filter={{
+      https://{{ cyberark_subdomain }}.privilegecloud.cyberark.cloud/passwordvault/api/Accounts?limit=1000&filter={{
       ('safeName eq ' ~ cyberark_account_reconcile_safe) | urlencode }}
     method: GET
     headers:
@@ -16,8 +32,12 @@
     timeout: 30
     validate_certs: "{{ cyberark_validate_certs }}"
   register: _cyberark_reconcile_lookup
+  no_log: true
+  when:
+    - _cyberark_reconcile_needs_resolve
   run_once: true
   delegate_to: localhost
+  check_mode: false
 
 - name: Extract desired reconcile account ID
   ansible.builtin.set_fact:
@@ -27,6 +47,16 @@
          | selectattr('name', 'equalto', cyberark_account_reconcile_account_name)
          | list | first | default({})).get('id', '')
       }}
+  when:
+    - _cyberark_reconcile_needs_resolve
+  run_once: true
+  delegate_to: localhost
+
+- name: Remember resolved reconcile account for this safe/name pair
+  ansible.builtin.set_fact:
+    _cyberark_reconcile_resolved_key: "{{ cyberark_account_reconcile_safe ~ '::' ~ cyberark_account_reconcile_account_name }}"
+  when:
+    - _cyberark_reconcile_needs_resolve
   run_once: true
   delegate_to: localhost
 
@@ -38,6 +68,22 @@
       Could not find reconcile account "{{ cyberark_account_reconcile_account_name }}" in safe
       "{{ cyberark_account_reconcile_safe }}" — check cyberark_account_reconcile_safe and
       cyberark_account_reconcile_account_name.
+  when:
+    - _cyberark_reconcile_needs_resolve
+    - not cyberark_dry_run | default(true) | bool
+  run_once: true
+  delegate_to: localhost
+
+- name: "[DRY RUN] Reconcile account could not be resolved ({{ cyberark_account_name }})"
+  ansible.builtin.debug:
+    msg: >-
+      Could not find reconcile account "{{ cyberark_account_reconcile_account_name }}" in safe
+      "{{ cyberark_account_reconcile_safe }}" — reconcile-link preview skipped for this account.
+      This will fail the play on a live run; check cyberark_account_reconcile_safe and
+      cyberark_account_reconcile_account_name.
+  when:
+    - _cyberark_reconcile_account_id | length == 0
+    - cyberark_dry_run | default(true) | bool
   run_once: true
   delegate_to: localhost
 
@@ -51,23 +97,68 @@
     timeout: 30
     validate_certs: "{{ cyberark_validate_certs }}"
   register: _cyberark_current_links
+  no_log: true
+  when:
+    - cyberark_account_id | length > 0
+    - _cyberark_reconcile_account_id | length > 0
   run_once: true
   delegate_to: localhost
+  check_mode: false
 
-- name: Extract current reconcile-linked account ID (extraPasswordIndex 3)
+- name: Extract current reconcile-linked AccountId (extraPasswordIndex 3)
   ansible.builtin.set_fact:
-    _cyberark_current_reconcile_id: >-
+    _cyberark_current_reconcile_account_id: >-
       {{
-        ((_cyberark_current_links.json | default({})).LinkedAccounts | default([])
-         | selectattr('extraPasswordIndex', 'equalto', 3)
-         | list | first | default({})).get('AccountId', '')
+        ((((_cyberark_current_links.json | default({})).LinkedAccounts | default([])
+          | selectattr('extraPasswordIndex', 'equalto', 3)
+          | list | first | default({})).get('AccountId'))
+         | default('', true)) | string
       }}
   run_once: true
   delegate_to: localhost
 
+# Resolves AccountId to a full account record (rather than trusting it's
+# directly comparable to the id field from GET /Accounts) so the comparison
+# below is same-endpoint/same-field on both sides, and so the safeName/name
+# are available for the provision summary's old -> new detail.
+- name: "Resolve current reconcile-linked account details ({{ cyberark_account_name }})"
+  ansible.builtin.uri:
+    url: "https://{{ cyberark_subdomain }}.privilegecloud.cyberark.cloud/passwordvault/api/Accounts/{{ _cyberark_current_reconcile_account_id }}"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ cyberark_token }}"
+    status_code: [200, 404]
+    timeout: 30
+    validate_certs: "{{ cyberark_validate_certs }}"
+  register: _cyberark_current_reconcile_detail
+  no_log: true
+  when:
+    - _cyberark_current_reconcile_account_id | length > 0
+  run_once: true
+  delegate_to: localhost
+  check_mode: false
+
 - name: Determine whether the reconcile link needs to change
   ansible.builtin.set_fact:
-    _cyberark_reconcile_needs_link: "{{ _cyberark_current_reconcile_id != _cyberark_reconcile_account_id }}"
+    _cyberark_reconcile_needs_link: >-
+      {{
+        ((_cyberark_current_reconcile_detail.json | default({})).id | default('') | string)
+        != (_cyberark_reconcile_account_id | string)
+      }}
+  run_once: true
+  delegate_to: localhost
+
+- name: Build reconcile link change detail
+  set_fact:
+    _cyberark_reconcile_change_detail: >-
+      {%- set _old_detail = _cyberark_current_reconcile_detail.json | default({}) -%}
+      {%- set old = (
+          (_old_detail.safeName | default('')) ~ '/' ~ (_old_detail.name | default(''))
+        ) if _cyberark_current_reconcile_account_id | length > 0 else '(none)' -%}
+      {%- set new = cyberark_account_reconcile_safe ~ '/' ~ cyberark_account_reconcile_account_name -%}
+      reconcile account: "{{ old }}" → "{{ new }}"
+  when:
+    - _cyberark_reconcile_needs_link
   run_once: true
   delegate_to: localhost
 
@@ -82,7 +173,7 @@
         _cyberark_provision_summary | default([]) + [{
           'safe': cyberark_account_safe, 'type': 'account', 'item': cyberark_account_name,
           'action': 'link-reconcile',
-          'detail': 'reconcile account -> ' ~ cyberark_account_reconcile_safe ~ '/' ~ cyberark_account_reconcile_account_name
+          'detail': _cyberark_reconcile_change_detail | default('')
         }]
       }}
   when:
@@ -96,6 +187,7 @@
       POST /Accounts/{{ cyberark_account_id }}/LinkAccount — {{ cyberark_account_name }} would be linked to
       reconcile account "{{ cyberark_account_reconcile_account_name }}" in safe {{ cyberark_account_reconcile_safe }}
   when:
+    - _cyberark_reconcile_account_id | length > 0
     - _cyberark_reconcile_needs_link
     - cyberark_dry_run | default(true) | bool
   run_once: true
@@ -105,6 +197,7 @@
   ansible.builtin.debug:
     msg: "{{ cyberark_account_name }} already linked to the desired reconcile account — skipping"
   when:
+    - _cyberark_reconcile_account_id | length > 0
     - not _cyberark_reconcile_needs_link
     - cyberark_dry_run | default(true) | bool
   run_once: true
@@ -125,7 +218,6 @@
     status_code: [200, 201]
     timeout: 30
     validate_certs: "{{ cyberark_validate_certs }}"
-  register: _cyberark_account_reconcile_link
   no_log: true
   when:
     - _cyberark_reconcile_needs_link
