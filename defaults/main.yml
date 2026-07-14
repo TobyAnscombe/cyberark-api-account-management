@@ -6,6 +6,11 @@ cyberark_dry_run: true
 
 cyberark_validate_certs: true
 
+# Suppresses task output that could contain account credentials or the
+# bearer token. Override to false temporarily (e.g. -e cyberark_no_log=false)
+# to debug a failing task — never disable it permanently in a committed playbook.
+cyberark_no_log: true
+
 # ---------------------------------------------------------------------------
 # Account identity and state
 # ---------------------------------------------------------------------------

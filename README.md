@@ -76,6 +76,7 @@ Both must be set together, or both left empty. Linking is additive only — the 
 | Variable | Default | Description |
 |---|---|---|
 | `cyberark_validate_certs` | `true` | Validate TLS certificates on API calls |
+| `cyberark_no_log` | `true` | Suppress log output on tasks that handle credentials or the bearer token. Override to `false` temporarily to debug a failing task. |
 
 ---
 
