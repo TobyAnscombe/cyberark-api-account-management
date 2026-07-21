@@ -27,7 +27,10 @@ cyberark_account_state: present # present | absent
 cyberark_account_secret_type: password # password | key
 cyberark_account_secret: "" # vault-encrypted; write-only on the API
 cyberark_account_secret_update: false # set true to push a new credential on every run
-cyberark_account_secret_allow_empty: false # set true to treat an empty cyberark_account_secret as an explicit blank credential (e.g. SSH key accounts) instead of "no change"
+# Treat an empty cyberark_account_secret as an explicit blank credential
+# (e.g. SSH key accounts) instead of "no change". Only valid when
+# cyberark_account_secret_type is "key".
+cyberark_account_secret_allow_empty: false
 
 # ---------------------------------------------------------------------------
 # Platform-specific properties
