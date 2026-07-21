@@ -41,6 +41,7 @@ Designed to be called after the [`cyberark_api_authentication`](https://github.c
 | `cyberark_account_secret_type` | `password` | `password` or `key` |
 | `cyberark_account_secret` | `""` | Vault-encrypted credential; write-only on the API |
 | `cyberark_account_secret_update` | `false` | Push a new credential on every run when `true`; on create only when `false` |
+| `cyberark_account_secret_allow_empty` | `false` | Treat an empty `cyberark_account_secret` as an explicit blank credential instead of "no change". Only valid when `cyberark_account_secret_type` is `key`. |
 
 ### Platform properties
 
@@ -156,6 +157,11 @@ roles:
     # cyberark_account_secret: !vault |
     #   $ANSIBLE_VAULT;1.1;AES256
     #   ...
+
+    # To vault this account before a key is available (or to explicitly clear
+    # the key), set:
+    #   cyberark_account_secret: ""
+    #   cyberark_account_secret_allow_empty: true
 
   roles:
     - cyberark_api_authentication
