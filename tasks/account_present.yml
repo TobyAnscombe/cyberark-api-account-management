@@ -33,7 +33,7 @@
           }
         } | combine(
           {'secret': cyberark_account_secret}
-          if cyberark_account_secret | trim | length > 0
+          if (cyberark_account_secret | trim | length > 0 or cyberark_account_secret_allow_empty)
           else {}
         ) | combine(
           {'platformAccountProperties': cyberark_account_platform_properties}
@@ -259,7 +259,7 @@
       exists and cyberark_account_secret_update is false — the existing credential was left
       unchanged. Set cyberark_account_secret_update: true to push this value.
   when:
-    - cyberark_account_secret | trim | length > 0
+    - cyberark_account_secret | trim | length > 0 or cyberark_account_secret_allow_empty
     - cyberark_account_exists
     - not cyberark_account_secret_update
   run_once: true
@@ -268,5 +268,5 @@
 - name: Update account secret
   include_tasks: account_secret.yml
   when:
-    - cyberark_account_secret | trim | length > 0
+    - cyberark_account_secret | trim | length > 0 or cyberark_account_secret_allow_empty
     - cyberark_account_secret_update or not cyberark_account_exists
