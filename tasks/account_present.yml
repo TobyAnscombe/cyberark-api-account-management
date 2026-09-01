@@ -116,6 +116,28 @@
   run_once: true
   delegate_to: localhost
 
+- name: Add platform account property patch operations
+  set_fact:
+    _cyberark_account_patch_ops: >-
+      {{
+        _cyberark_account_patch_ops + [{
+          'op': 'replace',
+          'path': '/platformAccountProperties/'
+            ~ (_cyberark_platform_property.key | replace('~', '~0') | replace('/', '~1')),
+          'value': _cyberark_platform_property.value
+        }]
+      }}
+  loop: "{{ cyberark_account_platform_properties | dict2items }}"
+  loop_control:
+    loop_var: _cyberark_platform_property
+    label: "{{ _cyberark_platform_property.key }}"
+  when:
+    - cyberark_account_exists
+    - ((_cyberark_account_current.platformAccountProperties | default({}))
+        .get(_cyberark_platform_property.key)) != _cyberark_platform_property.value
+  run_once: true
+  delegate_to: localhost
+
 - name: Build account change detail
   set_fact:
     _cyberark_account_change_detail: >-

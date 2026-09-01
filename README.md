@@ -47,7 +47,7 @@ Designed to be called after the [`cyberark_api_authentication`](https://github.c
 
 | Variable | Default | Description |
 |---|---|---|
-| `cyberark_account_platform_properties` | `{}` | Extra properties passed under `platformAccountProperties` — keys vary by platform |
+| `cyberark_account_platform_properties` | `{}` | Extra properties created or updated under `platformAccountProperties`; undeclared properties are preserved and accepted keys vary by platform |
 
 ### CPM management
 
