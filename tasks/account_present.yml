@@ -116,25 +116,23 @@
   run_once: true
   delegate_to: localhost
 
-- name: Add platform account property patch operations
+- name: Add platform account properties patch operation
   set_fact:
     _cyberark_account_patch_ops: >-
       {{
         _cyberark_account_patch_ops + [{
           'op': 'replace',
-          'path': '/platformAccountProperties/'
-            ~ (_cyberark_platform_property.key | replace('~', '~0') | replace('/', '~1')),
-          'value': _cyberark_platform_property.value
+          'path': '/platformAccountProperties',
+          'value': (_cyberark_account_current.platformAccountProperties | default({}))
+            | combine(cyberark_account_platform_properties)
         }]
       }}
-  loop: "{{ cyberark_account_platform_properties | dict2items }}"
-  loop_control:
-    loop_var: _cyberark_platform_property
-    label: "{{ _cyberark_platform_property.key }}"
   when:
     - cyberark_account_exists
+    - cyberark_account_platform_properties | length > 0
     - ((_cyberark_account_current.platformAccountProperties | default({}))
-        .get(_cyberark_platform_property.key)) != _cyberark_platform_property.value
+        | combine(cyberark_account_platform_properties))
+      != (_cyberark_account_current.platformAccountProperties | default({}))
   run_once: true
   delegate_to: localhost
 
@@ -148,6 +146,7 @@
         '/address':                                           cur.address | default('') | string,
         '/userName':                                          cur.userName | default('') | string,
         '/platformId':                                        cur.platformId | default('') | string,
+        '/platformAccountProperties':                         cur.platformAccountProperties | default({}) | string,
         '/secretManagement/automaticManagementEnabled':       (cur.secretManagement | default({})).automaticManagementEnabled | default('') | string,
         '/secretManagement/manualManagementReason':           (cur.secretManagement | default({})).manualManagementReason | default('') | string,
         '/remoteMachinesAccess/remoteMachines':               rma.remoteMachines | default('') | string,
